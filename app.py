@@ -259,9 +259,10 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
                 if confidence > threshold:
                     # Optional: Add a motion threshold here if 'static bias' persists
                     # if motion_energy > 0.02: 
-                    cv2.putText(image, f"DETECTED: {current_word.upper()}", (10, 400), 
+                    h, w, _ = image.shape
+                    cv2.putText(image, f"DETECTED: {current_word.upper()}", (w - 400, 50), 
                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                    cv2.putText(image, f"CONF: {confidence*100:.1f}% | MOTION: {motion_energy:.3f}", (10, 440), 
+                    cv2.putText(image, f"CONF: {confidence*100:.1f}% | MOTION: {motion_energy:.3f}", (w - 400, 90), 
                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         else:
             # Reset history if hands are lost

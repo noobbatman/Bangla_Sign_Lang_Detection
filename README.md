@@ -8,6 +8,9 @@ and spatial body relationships.
 
 ## Demo
 
+![Bangla Sign Language Detection Demo](demo.gif)
+
+*Demonstration of the model detecting the signs for "valobasha" (ভালোবাসা - Love) and "shikkhok" (শিক্ষক - Teacher) in real-time.*
 
 ---
 
