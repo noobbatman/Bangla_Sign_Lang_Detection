@@ -1,59 +1,154 @@
-# Bangla Sign Language Detection
+# Bangla Sign Language Detector
 
-This project is a real-time Bangla Sign Language Detection application using deep learning and computer vision. It utilizes MediaPipe for holistic body tracking (pose, face, and hands) to extract complex spatial and motion features, and a sophisticated sequence model implemented using TensorFlow/Keras to perform the classification.
+Real-time recognition of Bangladeshi Sign Language (BdSL) gestures from
+a live webcam feed. Unlike static hand-pose classifiers, this system
+recognises **dynamic, motion-based signs** — analysing sequences of 30
+frames with a deep learning model that understands velocity, acceleration,
+and spatial body relationships.
 
-## Features
+## Demo
 
-- **Real-Time Detection**: Processes live webcam feeds using OpenCV.
-- **Universal Motion Extractor**: A custom physics-engine-like feature extractor that generates 607 distinct features per frame, including:
-  - Body-relative normalized landmarks
-  - Motion derivatives (Velocity & Acceleration)
-  - Spatial relationships and interactions
-  - Directional patterns and hand configurations
-- **Deep Sequence Model**: Utilizes an advanced architecture combining Conv1D, Bidirectional LSTMs, and Multi-Head Attention mechanisms to process sequences of 30 frames.
-- **Robustness**: Advanced preprocessing and interpolation layers ensure consistent temporal scaling and prediction stability.
 
-## Supported Signs (Actions)
+---
 
-The model is currently trained to detect the following Bangla signs:
-1. valobasha (ভালোবাসা - Love)
-2. valo (ভালো - Good)
-3. kharap (খারাপ - Bad)
-4. olosh (অলস - Lazy)
-5. boka (বোকা - Fool/Stupid)
-6. chad (চাঁদ - Moon)
-7. akash (আকাশ - Sky)
-8. dhonnobad (ধন্যবাদ - Thank you)
-9. shikkhok (শিক্ষক - Teacher)
-10. football (ফুটবল - Football)
-11. stree (স্ত্রী - Wife)
-12. durbol (দুর্বল - Weak)
+## Why dynamic gesture recognition is hard
 
-## Files Included
+Most sign language projects classify a single static hand image. BdSL
+signs are motions — they evolve over time. A static snapshot of "ভালোবাসা"
+(Love) is meaningless without seeing the full movement arc.
 
-- `app.py`: The main entry point for running the real-time inference loop using a webcam.
-- `action_universal_final.h5`: The compiled weights for the trained neural network model.
-- `Untitled3 (1).ipynb`: A Jupyter Notebook likely used for training, experiments, and exploratory analysis.
+This system solves that by:
+1. Capturing 30 consecutive frames per prediction window
+2. Extracting 607 rich features per frame (not just raw landmarks)
+3. Running a sequence model that understands how features **change** over time
 
-## Requirements
+---
 
-Ensure you have a Python environment set up (virtual environments are recommended). The key dependencies are:
+## Architecture
 
-- `opencv-python`
-- `numpy`
-- `mediapipe`
-- `tensorflow`
-- `scipy`
-
-Install dependencies generally using:
-```bash
-pip install opencv-python numpy mediapipe tensorflow scipy
+```
+Webcam (30 frames)
+       │
+       ▼
+MediaPipe Holistic
+  ├── 33 pose landmarks
+  ├── 468 face landmarks
+  ├── 21 left hand landmarks
+  └── 21 right hand landmarks
+       │
+       ▼
+Universal Motion Extractor  ──► 607 features/frame
+  ├── Body-relative normalised landmarks
+  ├── Velocity (frame-to-frame delta)
+  ├── Acceleration (second-order delta)
+  ├── Spatial inter-landmark relationships
+  └── Directional patterns & hand configurations
+       │
+       ▼
+Sequence Model  (input: 30 × 607)
+  ├── Conv1D          ← local temporal pattern extraction
+  ├── Bidirectional LSTM  ← forward + backward temporal context
+  ├── Multi-Head Attention  ← focus on most relevant frames
+  └── Dense + Softmax  ← 12-class prediction
+       │
+       ▼
+Predicted BdSL Sign + Confidence
 ```
 
-## Usage
+---
 
-Run the main application:
+## About this project
+
+**Sole developer** — I designed and implemented the full pipeline:
+feature engineering, model architecture, training, and real-time inference.
+
+**What I implemented:**
+
+- **Custom feature extractor** — built a "universal motion extractor"
+  that generates 607 features per frame. Instead of feeding raw (x, y, z)
+  coordinates, I engineered body-relative normalised landmarks so that
+  predictions are scale- and position-invariant (works regardless of
+  how close you stand to the camera). Added first and second-order motion
+  derivatives (velocity and acceleration) to capture the physics of signs.
+
+- **Deep sequence model** — designed the architecture from scratch:
+  Conv1D layers to capture local temporal patterns, Bidirectional LSTMs
+  to model both forward and backward context in the 30-frame window, and
+  Multi-Head Attention to let the model focus on the most informative
+  frames in a sequence. Added preprocessing and interpolation layers for
+  temporal scaling robustness.
+
+- **MediaPipe Holistic integration** — used the full holistic model
+  (pose + face + both hands) rather than hands-only, because some BdSL
+  signs involve upper body posture and head orientation.
+
+- **Real-time inference loop** — built `app.py` as a low-latency OpenCV
+  webcam loop with a rolling 30-frame buffer, live prediction overlay,
+  and a confidence-gated display so the label only shows when the model
+  is sufficiently certain.
+
+**What I learnt:**
+
+- **Sequence modelling for gestures** — why static image classification
+  fails for dynamic signs and how to frame gesture recognition as a
+  time-series problem
+- **Feature engineering over raw landmarks** — body-relative
+  normalisation, why scale-invariance matters, and how motion derivatives
+  (velocity, acceleration) dramatically improve temporal model performance
+- **Bidirectional LSTM + Attention architecture** — how BiLSTMs capture
+  context in both directions and why attention helps the model ignore
+  irrelevant frames at the start/end of a gesture sequence
+- **MediaPipe Holistic API** — extracting and structuring landmarks from
+  pose, face, and hand models simultaneously and handling missing
+  detections gracefully
+- **Real-time deep learning inference with OpenCV** — managing frame
+  buffers, prediction latency, and display overlays in a live loop
+
+---
+
+## Supported signs (12 classes)
+
+| Bangla | Transliteration | Meaning |
+|---|---|---|
+| ভালোবাসা | valobasha | Love |
+| ভালো | valo | Good |
+| খারাপ | kharap | Bad |
+| অলস | olosh | Lazy |
+| বোকা | boka | Fool / Stupid |
+| চাঁদ | chad | Moon |
+| আকাশ | akash | Sky |
+| ধন্যবাদ | dhonnobad | Thank you |
+| শিক্ষক | shikkhok | Teacher |
+| ফুটবল | football | Football |
+| স্ত্রী | stree | Wife |
+| দুর্বল | durbol | Weak |
+
+---
+
+## Tech stack
+Python · TensorFlow / Keras · MediaPipe Holistic · OpenCV · NumPy · SciPy
+
+---
+
+## Run locally
+
 ```bash
+git clone https://github.com/noobbatman/bangla-sign-language-detector
+cd bangla-sign-language-detector
+
+pip install opencv-python numpy mediapipe tensorflow scipy
+
 python app.py
 ```
-Press `q` within the live feed window to exit the application.
+
+Press `q` to exit the webcam window.
+
+---
+
+## Why this matters
+
+Bangladesh has an estimated 1.5 million deaf and hard-of-hearing people.
+BdSL recognition is severely underrepresented in computer vision research
+compared to ASL or BSL — most papers and open-source tools focus on
+western sign languages. This project is a step toward building accessible
+technology specifically for the Bangladeshi deaf community.
